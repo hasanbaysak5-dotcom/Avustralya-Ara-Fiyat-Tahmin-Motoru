@@ -34,6 +34,20 @@ def veriyi_ve_encoderlari_hazirla():
         with z.open(csv_files[0]) as f:
             df_temiz = pd.read_csv(f)
 
+    # 🎯 KİLOMETRE VE DİĞER SAYISAL SÜTUNLARI METİNDEN ARINDIRMA ROBOTU
+    # Eğer sütunda "15,000 km" veya "2.0L" gibi metinler varsa sadece sayıları ayıklar
+    sayisal_sutunlar = ['Kilometres', 'Engine', 'FuelConsumption', 'Year', 'Price']
+    for col in sayisal_sutunlar:
+        if col in df_temiz.columns:
+            # Virgülleri kaldır ve stringe çevir
+            df_temiz[col] = df_temiz[col].astype(str).str.replace(',', '', regex=True)
+            # Sadece sayısal kısımları (regex ile) ayıkla
+            df_temiz[col] = df_temiz[col].str.extract(r'(\d+\.?\d*)')[0]
+            # Gerçekten sayısal veri tipine (float/int) dönüştür
+            df_temiz[col] = pd.to_numeric(df_temiz[col], errors='coerce')
+            # Eğer boş (NaN) satırlar kalırsa sıfırla doldur ki hata vermesin
+            df_temiz[col] = df_temiz[col].fillna(0)
+
     marka_listesi = sorted(df_temiz['Brand'].dropna().unique())
     vites_listesi = sorted(df_temiz['Transmission'].dropna().unique())
     yakit_listesi = sorted(df_temiz['FuelType'].dropna().unique())
@@ -107,7 +121,7 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
 
         kodlu_girdi['Year'] = yil
         
-        # Kilometre ayna formülü
+        # Artık Kilometres sütunu kesinlikle sayı olduğu için bu formül asla patlamaz!
         ort_km = df_temiz['Kilometres'].mean()
         ters_kilometre = (2 * ort_km) - kilometre
         kodlu_girdi['Kilometres'] = max(0, ters_kilometre)
