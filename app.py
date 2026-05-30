@@ -13,7 +13,7 @@ st.title("🚗 Avustralya Araç Fiyat Tahmin Motoru")
 st.write("Listeden aracınızın markasını, modelini ve özelliklerini seçerek anlık piyasa değerini hesaplayın.")
 st.markdown("---")
 
-# Dinamik klasör yolunu en başta tanımlayalım
+# Dinamik klasör yolu
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @st.cache_data
@@ -21,30 +21,24 @@ def veriyi_ve_encoderlari_hazirla():
     zip_dosya_adi = "arabalar.zip" 
     zip_file_path = os.path.join(BASE_DIR, zip_dosya_adi)
     
-    # Güvenlik Kontrolü: Dosya yoksa uygulamayı durdur ve uyar
     if not os.path.exists(zip_file_path):
         st.error(f"❌ '{zip_dosya_adi}' dosyası GitHub deponuzda bulunamadı!")
         st.stop()
         
-    # Zip dosyasını açıp içindeki CSV'yi okuyoruz
     with zipfile.ZipFile(zip_file_path, 'r') as z:
-        # Zip içindeki .csv uzantılı dosyaları bul
         csv_files = [f for f in z.namelist() if f.endswith('.csv')]
         if not csv_files:
             st.error("❌ Zip dosyasının içinde .csv uzantılı bir veri dosyası bulunamadı!")
             st.stop()
         
-        # İlk bulduğu CSV dosyasını okutuyoruz
         with z.open(csv_files[0]) as f:
             df_temiz = pd.read_csv(f)
 
-    # Arayüz listelerini dolduruyoruz
     marka_listesi = sorted(df_temiz['Brand'].dropna().unique())
     vites_listesi = sorted(df_temiz['Transmission'].dropna().unique())
     yakit_listesi = sorted(df_temiz['FuelType'].dropna().unique())
     tip_listesi = sorted(df_temiz['Type'].dropna().unique()) if 'Type' in df_temiz.columns else []
 
-    # Kategorik sütunlar için encoder'ları dinamik olarak oluşturup eğitiyoruz
     encoders_dict = {}
     for col in ['Brand', 'Model', 'Transmission', 'FuelType']:
         if col in df_temiz.columns:
@@ -54,10 +48,10 @@ def veriyi_ve_encoderlari_hazirla():
 
     return marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz
 
-# Fonksiyonu çalıştırıp değişkenleri alıyoruz
+# Verileri çekiyoruz
 marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz = veriyi_ve_encoderlari_hazirla()
 
-# Model ve Scaler dosyalarını dinamik yolla güvenli şekilde yüklüyoruz
+# Model ve Scaler yükleme
 model_path = os.path.join(BASE_DIR, 'en_iyi_model.pkl')
 scaler_path = os.path.join(BASE_DIR, 'scaler.pkl')
 
@@ -95,23 +89,17 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
         orijinal_sutunlar = [col for col in df_temiz.columns if col != 'Price']
 
         kodlu_girdi = {}
-       kodlu_girdi = {}
         for col in orijinal_sutunlar:
             try:
-                # Sistem ortalamasını almayı deneyecek
                 kodlu_girdi[col] = df_temiz[col].mean()
             except Exception:
-                # Eğer sütun metinse veya hata verirse direkt 0 basıp geçecek, çökmeyecek!
-                kodlu_girdi[col] = 0
-                kodlu_girdi[col] = df_temiz[col].mean()
-            else:
                 kodlu_girdi[col] = 0
 
         kodlu_girdi['Brand'] = encoders_dict['Brand'].transform([secilen_marka])[0]
 
         try:
             kodlu_girdi['Model'] = encoders_dict['Model'].transform([secilen_model])[0]
-        except:
+        except Exception:
             kodlu_girdi['Model'] = 0
 
         kodlu_girdi['Transmission'] = encoders_dict['Transmission'].transform([secilen_vites])[0]
@@ -119,12 +107,10 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
 
         kodlu_girdi['Year'] = yil
         
-        # 🎯 KİLOMETRE İLİŞKİSİNİ TERSİNE ÇEVİREN SİHİRLİ AYNA FORMÜLÜ
-        # Modelin ortalama kilometresini bulup girdiyi ona göre simetriğe alıyoruz.
-        # Böylece: Yüksek KM girilirse düşük fiyat, düşük KM girilirse yüksek fiyat çıkacak.
+        # Kilometre ayna formülü
         ort_km = df_temiz['Kilometres'].mean()
         ters_kilometre = (2 * ort_km) - kilometre
-        kodlu_girdi['Kilometres'] = max(0, ters_kilometre) # Sıfırın altına düşmesini engeller
+        kodlu_girdi['Kilometres'] = max(0, ters_kilometre)
 
         kodlu_girdi['Engine'] = motor_hacmi
         kodlu_girdi['FuelConsumption'] = yakit_tuketimi
