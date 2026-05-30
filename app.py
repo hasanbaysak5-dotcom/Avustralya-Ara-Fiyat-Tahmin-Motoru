@@ -95,8 +95,14 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
         orijinal_sutunlar = [col for col in df_temiz.columns if col != 'Price']
 
         kodlu_girdi = {}
+       kodlu_girdi = {}
         for col in orijinal_sutunlar:
-            if pd.api.types.is_numeric_dtype(df_temiz[col]):
+            try:
+                # Sistem ortalamasını almayı deneyecek
+                kodlu_girdi[col] = df_temiz[col].mean()
+            except Exception:
+                # Eğer sütun metinse veya hata verirse direkt 0 basıp geçecek, çökmeyecek!
+                kodlu_girdi[col] = 0
                 kodlu_girdi[col] = df_temiz[col].mean()
             else:
                 kodlu_girdi[col] = 0
