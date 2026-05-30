@@ -20,7 +20,7 @@ def veriyi_ve_encoderlari_hazirla():
     
     # 2. ZIP DOSYASININ ADINI BURAYA YAZ (Örn: 'veriler.zip' veya klasör içindeyse 'data/veri.zip')
     # GitHub'daki dosya adıyla BİREBİR aynı olmalı (Büyük/küçük harfe duyarlıdır!)
-    zip_dosya_adi = "verileriniz.zip" 
+    zip_dosya_adi = "araba.zip" 
     
     zip_file_path = os.path.join(current_dir, zip_dosya_adi)
     
