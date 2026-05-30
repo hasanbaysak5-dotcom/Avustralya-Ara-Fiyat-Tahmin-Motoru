@@ -12,27 +12,35 @@ st.write("Listeden aracınızın markasını, modelini ve özelliklerini seçere
 st.markdown("---")
 
 @st.cache_data
+import os
+import zipfile
+import streamlit as st
+
+# @st.cache_data veya hangisini kullanıyorsan o kalsın
 def veriyi_ve_encoderlari_hazirla():
-    zip_file_path = 'Australian Vehicle Prices.csv.zip'
+    # 1. Klasör yolunu dinamik yapıyoruz (Sunucuda sorun çıkarmaması için en garanti yol)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 2. ZIP DOSYASININ ADINI BURAYA YAZ (Örn: 'veriler.zip' veya klasör içindeyse 'data/veri.zip')
+    # GitHub'daki dosya adıyla BİREBİR aynı olmalı (Büyük/küçük harfe duyarlıdır!)
+    zip_dosya_adi = "verileriniz.zip" 
+    
+    zip_file_path = os.path.join(current_dir, zip_dosya_adi)
+    
+    # 3. Güvenlik Duvarı: Eğer dosya yine bulunamazsa uygulama çökmek yerine sana söylesin
+    if not os.path.exists(zip_file_path):
+        st.error(f"❌ Zip dosyası bulunamadı!")
+        st.warning(f"Sistem şu adrese baktı ama bulamadı: {zip_file_path}")
+        st.info("Lütfen aşağıdaki 3 maddelik kontrol listesine göz at.")
+        st.stop() # Uygulamanın çökmesini engeller, burada durdurur.
+
+    # 4. Dosya varsa sorunsuz açılacaktır
     with zipfile.ZipFile(zip_file_path, 'r') as z:
-        csv_name = [f for f in z.namelist() if f.endswith('.csv')][0]
-        df_raw = pd.read_csv(z.open(csv_name))
-    df_c = df_raw.dropna().copy()
-
-    markalar = sorted(df_c['Brand'].unique())
-    vitesler = sorted(df_c['Transmission'].unique())
-    yakitlar = sorted(df_c['FuelType'].unique())
-    tipler = sorted(df_c['Type'].unique()) if 'Type' in df_c.columns else []
-
-    encoders = {}
-    for col in df_c.select_dtypes(include=['object']).columns:
-        le = LabelEncoder()
-        df_c[col] = le.fit_transform(df_c[col])
-        encoders[col] = le
-
-    return markalar, vitesler, yakitlar, tipler, encoders, df_raw.dropna()
-
-marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz = veriyi_ve_encoderlari_hazirla()
+        # --- BURADAN SONRASI SENİN KENDİ KODLARIN ---
+        # Dosyayı z.extractall() vb. şeklinde okuduğun kısım...
+        pass
+        
+    return marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz
 
 with open('en_iyi_model.pkl', 'rb') as f:
     model = pickle.load(f)
