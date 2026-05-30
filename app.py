@@ -96,10 +96,12 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
 
         kodlu_girdi = {}
         for col in orijinal_sutunlar:
-            if df_temiz[col].dtype == 'object':
-                kodlu_girdi[col] = 0
-            else:
+            # HATA VEREN KISMI BURADA GÜVENLİ HALE GETİRDİK:
+            # Sütun gerçekten sayısal bir değer mi diye Pandas'ın kendi fonksiyonuyla bakıyoruz
+            if pd.api.types.is_numeric_dtype(df_temiz[col]):
                 kodlu_girdi[col] = df_temiz[col].mean()
+            else:
+                kodlu_girdi[col] = 0
 
         kodlu_girdi['Brand'] = encoders_dict['Brand'].transform([secilen_marka])[0]
 
