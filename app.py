@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -12,10 +13,6 @@ st.write("Listeden aracınızın markasını, modelini ve özelliklerini seçere
 st.markdown("---")
 
 @st.cache_data
-import os
-import zipfile
-import streamlit as st
-
 # @st.cache_data veya hangisini kullanıyorsan o kalsın
 def veriyi_ve_encoderlari_hazirla():
     # 1. Klasör yolunu dinamik yapıyoruz (Sunucuda sorun çıkarmaması için en garanti yol)
