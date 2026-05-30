@@ -38,7 +38,7 @@ def veriyi_ve_encoderlari_hazirla():
         pass
         
     return marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz
-
+marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz = veriyi_ve_encoderlari_hazirla()
 with open('en_iyi_model.pkl', 'rb') as f:
     model = pickle.load(f)
 
