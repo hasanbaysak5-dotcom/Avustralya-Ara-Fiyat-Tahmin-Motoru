@@ -13,16 +13,29 @@ st.write("Listeden aracınızın markasını, modelini ve özelliklerini seçere
 st.markdown("---")
 
 @st.cache_data
-# @st.cache_data veya hangisini kullanıyorsan o kalsın
 def veriyi_ve_encoderlari_hazirla():
-    # 1. Klasör yolunu dinamik yapıyoruz (Sunucuda sorun çıkarmaması için en garanti yol)
+    # 1. Dosya yolu bulma ve zip kontrolü (Burayı zaten hallettik)
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # 2. ZIP DOSYASININ ADINI BURAYA YAZ (Örn: 'veriler.zip' veya klasör içindeyse 'data/veri.zip')
-    # GitHub'daki dosya adıyla BİREBİR aynı olmalı (Büyük/küçük harfe duyarlıdır!)
     zip_dosya_adi = "arabalar.zip" 
-    
     zip_file_path = os.path.join(current_dir, zip_dosya_adi)
+    
+    # 2. Zip dosyasını açıyoruz
+    with zipfile.ZipFile(zip_file_path, 'r') as z:
+        # Zip içinden asıl CSV veya Excel dosyanı çıkarttığın yer
+        pass 
+
+    # 🚨 EKSİK OLAN VE HATAYA SEBEP OLAN KISIM BURASI! 🚨
+    # Return etmeden önce bu değişkenlerin içini veriyle doldurman ŞART:
+    
+    # ÖRNEK: df_temiz = pd.read_csv("arabalar.csv") vb. (kendi kodun neyse onu yaz)
+    # marka_listesi = df_temiz['Marka'].unique() 
+    # vites_listesi = df_temiz['Vites'].unique()
+    # yakit_listesi = df_temiz['Yakit'].unique()
+    # tip_listesi = df_temiz['Tip'].unique()
+    # encoders_dict = {...}  # Encoder işlemlerin
+    
+    # Ancak yukarıdaki değişkenler tanımlandıktan sonra return çalışır!
+    return marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz
     
     # 3. Güvenlik Duvarı: Eğer dosya yine bulunamazsa uygulama çökmek yerine sana söylesin
     if not os.path.exists(zip_file_path):
