@@ -6,58 +6,68 @@ import pickle
 import zipfile
 from sklearn.preprocessing import LabelEncoder
 
+# 1. Sayfa Ayarları
 st.set_page_config(page_title="Araç Fiyat Tahmin Sistemi", page_icon="🚗", layout="centered")
 
 st.title("🚗 Avustralya Araç Fiyat Tahmin Motoru")
 st.write("Listeden aracınızın markasını, modelini ve özelliklerini seçerek anlık piyasa değerini hesaplayın.")
 st.markdown("---")
 
+# Dinamik klasör yolunu en başta tanımlayalım
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 @st.cache_data
 def veriyi_ve_encoderlari_hazirla():
-    # 1. Dosya yolu bulma ve zip kontrolü (Burayı zaten hallettik)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
     zip_dosya_adi = "arabalar.zip" 
-    zip_file_path = os.path.join(current_dir, zip_dosya_adi)
+    zip_file_path = os.path.join(BASE_DIR, zip_dosya_adi)
     
-    # 2. Zip dosyasını açıyoruz
-    with zipfile.ZipFile(zip_file_path, 'r') as z:
-        # Zip içinden asıl CSV veya Excel dosyanı çıkarttığın yer
-        pass 
-
-    # 🚨 EKSİK OLAN VE HATAYA SEBEP OLAN KISIM BURASI! 🚨
-    # Return etmeden önce bu değişkenlerin içini veriyle doldurman ŞART:
-    
-    # ÖRNEK: df_temiz = pd.read_csv("arabalar.csv") vb. (kendi kodun neyse onu yaz)
-    # marka_listesi = df_temiz['Marka'].unique() 
-    # vites_listesi = df_temiz['Vites'].unique()
-    # yakit_listesi = df_temiz['Yakit'].unique()
-    # tip_listesi = df_temiz['Tip'].unique()
-    # encoders_dict = {...}  # Encoder işlemlerin
-    
-    # Ancak yukarıdaki değişkenler tanımlandıktan sonra return çalışır!
-    return marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz
-    
-    # 3. Güvenlik Duvarı: Eğer dosya yine bulunamazsa uygulama çökmek yerine sana söylesin
+    # Güvenlik Kontrolü: Dosya yoksa uygulamayı durdur ve uyar
     if not os.path.exists(zip_file_path):
-        st.error(f"❌ Zip dosyası bulunamadı!")
-        st.warning(f"Sistem şu adrese baktı ama bulamadı: {zip_file_path}")
-        st.info("Lütfen aşağıdaki 3 maddelik kontrol listesine göz at.")
-        st.stop() # Uygulamanın çökmesini engeller, burada durdurur.
-
-    # 4. Dosya varsa sorunsuz açılacaktır
-    with zipfile.ZipFile(zip_file_path, 'r') as z:
-        # --- BURADAN SONRASI SENİN KENDİ KODLARIN ---
-        # Dosyayı z.extractall() vb. şeklinde okuduğun kısım...
-        pass
+        st.error(f"❌ '{zip_dosya_adi}' dosyası GitHub deponuzda bulunamadı!")
+        st.stop()
         
+    # Zip dosyasını açıp içindeki CSV'yi okuyoruz
+    with zipfile.ZipFile(zip_file_path, 'r') as z:
+        # Zip içindeki .csv uzantılı dosyaları bul
+        csv_files = [f for f in z.namelist() if f.endswith('.csv')]
+        if not csv_files:
+            st.error("❌ Zip dosyasının içinde .csv uzantılı bir veri dosyası bulunamadı!")
+            st.stop()
+        
+        # İlk bulduğu CSV dosyasını okutuyoruz
+        with z.open(csv_files[0]) as f:
+            df_temiz = pd.read_csv(f)
+
+    # Arayüz listelerini dolduruyoruz
+    marka_listesi = sorted(df_temiz['Brand'].dropna().unique())
+    vites_listesi = sorted(df_temiz['Transmission'].dropna().unique())
+    yakit_listesi = sorted(df_temiz['FuelType'].dropna().unique())
+    tip_listesi = sorted(df_temiz['Type'].dropna().unique()) if 'Type' in df_temiz.columns else []
+
+    # Kategorik sütunlar için encoder'ları dinamik olarak oluşturup eğitiyoruz
+    encoders_dict = {}
+    for col in ['Brand', 'Model', 'Transmission', 'FuelType']:
+        if col in df_temiz.columns:
+            le = LabelEncoder()
+            le.fit(df_temiz[col].astype(str))
+            encoders_dict[col] = le
+
     return marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz
+
+# Fonksiyonu çalıştırıp değişkenleri alıyoruz
 marka_listesi, vites_listesi, yakit_listesi, tip_listesi, encoders_dict, df_temiz = veriyi_ve_encoderlari_hazirla()
-with open('en_iyi_model.pkl', 'rb') as f:
+
+# Model ve Scaler dosyalarını dinamik yolla güvenli şekilde yüklüyoruz
+model_path = os.path.join(BASE_DIR, 'en_iyi_model.pkl')
+scaler_path = os.path.join(BASE_DIR, 'scaler.pkl')
+
+with open(model_path, 'rb') as f:
     model = pickle.load(f)
 
-with open('scaler.pkl', 'rb') as f:
+with open(scaler_path, 'rb') as f:
     scaler = pickle.load(f)
 
+# 2. Kullanıcı Arayüzü (UI)
 st.subheader("📋 Araç Özelliklerini Seçiniz")
 
 col1, col2 = st.columns(2)
@@ -79,6 +89,7 @@ with col2:
 
 st.markdown("---")
 
+# 3. Tahmin Motoru Tetikleyicisi
 if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
     try:
         orijinal_sutunlar = [col for col in df_temiz.columns if col != 'Price']
@@ -110,9 +121,7 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
                 kodlu_girdi[col] = 0
 
         girdi_df = pd.DataFrame([kodlu_girdi])[orijinal_sutunlar]
-
         girdi_olcekli = scaler.transform(girdi_df)
-
         tahmin_fiyat = model.predict(girdi_olcekli)[0]
 
         if tahmin_fiyat < 0:
