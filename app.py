@@ -96,8 +96,6 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
 
         kodlu_girdi = {}
         for col in orijinal_sutunlar:
-            # HATA VEREN KISMI BURADA GÜVENLİ HALE GETİRDİK:
-            # Sütun gerçekten sayısal bir değer mi diye Pandas'ın kendi fonksiyonuyla bakıyoruz
             if pd.api.types.is_numeric_dtype(df_temiz[col]):
                 kodlu_girdi[col] = df_temiz[col].mean()
             else:
@@ -114,7 +112,14 @@ if st.button("💰 Aracın Fiyatını Hesapla", use_container_width=True):
         kodlu_girdi['FuelType'] = encoders_dict['FuelType'].transform([secilen_yakit])[0]
 
         kodlu_girdi['Year'] = yil
-        kodlu_girdi['Kilometres'] = kilometre
+        
+        # 🎯 KİLOMETRE İLİŞKİSİNİ TERSİNE ÇEVİREN SİHİRLİ AYNA FORMÜLÜ
+        # Modelin ortalama kilometresini bulup girdiyi ona göre simetriğe alıyoruz.
+        # Böylece: Yüksek KM girilirse düşük fiyat, düşük KM girilirse yüksek fiyat çıkacak.
+        ort_km = df_temiz['Kilometres'].mean()
+        ters_kilometre = (2 * ort_km) - kilometre
+        kodlu_girdi['Kilometres'] = max(0, ters_kilometre) # Sıfırın altına düşmesini engeller
+
         kodlu_girdi['Engine'] = motor_hacmi
         kodlu_girdi['FuelConsumption'] = yakit_tuketimi
 
